@@ -1,78 +1,118 @@
-import React, { useState, useEffect } from 'react';
-import { View, TextInput,StyleSheet, Button, Image } from 'react-native';
+import React, { useState } from 'react'; 
+import { View, Text, TextInput, Button, Image, StyleSheet, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import axios from 'axios';
 
-const ProductListing: React.FC = () => {
-  const [product, setProduct] = useState({ name: '', price: '', description: '', imageUrl: '' });
+const ProductForm = () => {
+    const [name, setName] = useState('');
+    const [price, setPrice] = useState('');
+    const [description, setDescription] = useState('');
+    const [category, setCategory] = useState('');
+    const [image, setImage] = useState<any>(null);
 
-  useEffect(() => {
-    (async () => {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Desculpe, precisamos de permissão para acessar a galeria!');
-      }
-    })();
-  }, []);
+    const pickImage = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
 
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
+        if (!result.canceled) {
+            setImage(result.assets[0]);
+        }
+    };
 
-    // Acessando o URI corretamente
-    if (!result.canceled) {
-      setProduct({ ...product, imageUrl: result.assets[0].uri }); // Correção aqui
-    }
-  };
+    const uploadProduct = async () => {
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('price', price);
+        formData.append('description', description);
+        formData.append('category', category);
 
-  return (
-    <View>
-      <TextInput 
-      style={styles.input}
-        placeholder="Nome do Produto" 
-        value={product.name} 
-        onChangeText={(text) => setProduct({ ...product, name: text })}
-      />
-      <TextInput 
-      style={styles.input}
-        placeholder="Preço" 
-        value={product.price} 
-        onChangeText={(text) => setProduct({ ...product, price: text })}
-      />
-      <TextInput 
-      style={styles.input}
-        placeholder="Descrição" 
-        value={product.description} 
-        onChangeText={(text) => setProduct({ ...product, description: text })}
-      />
-      <Button title="Escolher Imagem" onPress={pickImage} />
-      {product.imageUrl ? <Image source={{ uri: product.imageUrl }} style={{ width: 100, height: 100 }} /> : null}
-      <Button title="Cadastrar Produto" onPress={() => console.log('Produto cadastrado')} />
-    </View>
-  );
+        if (image) {
+            // Convertendo a imagem para um arquivo Blob
+            const localUri = image.uri;
+            const filename = localUri.split('/').pop();
+            const type = 'image/jpeg'; // Ajuste o tipo se necessário
+
+            const file = {
+                uri: localUri,
+                type,
+                name: filename,
+            };
+
+            // Criando um Blob a partir do arquivo
+            const imageBlob = await fetch(localUri).then(res => res.blob());
+
+            // Anexando a imagem como um Blob
+            formData.append('image', imageBlob, filename);
+        }
+
+        try {
+            const response = await axios.post('http://192.168.0.33/inventory/upload_product.php', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            if (response.data.success) {
+                alert('Produto cadastrado com sucesso!');
+            } else {
+                alert('Erro ao cadastrar o produto');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Erro ao enviar dados');
+        }
+    };
+
+    return (
+      <ScrollView style={styles.container}>
+        <View style={styles.container}>
+            <Text style={styles.label}>Nome do Produto</Text>
+            <TextInput style={styles.input} value={name} onChangeText={setName} />
+
+            <Text style={styles.label}>Preço</Text>
+            <TextInput style={styles.input} value={price} onChangeText={setPrice} keyboardType="numeric" />
+
+            <Text style={styles.label}>Descrição</Text>
+            <TextInput style={styles.input} value={description} onChangeText={setDescription} multiline />
+
+            <Text style={styles.label}>Categoria</Text>
+            <TextInput style={styles.input} value={category} onChangeText={setCategory} />
+
+            <Button title="Selecionar Imagem" onPress={pickImage} />
+
+            {image && <Image source={{ uri: image.uri }} style={styles.image} />}
+
+            <Button title="Cadastrar Produto" onPress={uploadProduct} />
+        </View>
+      </ScrollView>
+    );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 12,
-    paddingHorizontal: 10,
-  },
-  label: {
-    marginBottom: 5,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+    container: {
+        padding: 20,
+        backgroundColor: '#fff',
+    },
+    label: {
+        fontWeight: 'bold',
+        marginVertical: 5,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        padding: 10,
+        marginBottom: 10,
+        borderRadius: 5,
+    },
+    image: {
+        width: 100,
+        height: 100,
+        marginVertical: 10,
+    },
 });
 
-export default ProductListing;
+export default ProductForm;

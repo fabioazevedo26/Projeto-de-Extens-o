@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Text } from 'react-native'; // Adicionei o Text aqui
+import { View, TextInput, Button, StyleSheet, Text,  } from 'react-native'; // Adicionei o Text aqui
 import { auth } from '../config/firebaseConfig';
 import { RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
 
@@ -57,6 +57,7 @@ const PhoneAuth: React.FC = () => {
         </>
       )}
     </View>
+   
   );
 };
 
